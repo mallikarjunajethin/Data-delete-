@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Disk usage threshold
+THRESHOLD=79
+
+# Path to monitor
+CHECK_PATH="/var/lib/jenkins"
+
+# Directory to delete
+DELETE_DIR="/var/lib/jenkins/.m2"
+
+# Get current disk usage percentage
+USAGE=$(df "$CHECK_PATH" | awk 'NR==2 {gsub("%",""); print $5}')
+
+echo "Current disk usage on $CHECK_PATH : ${USAGE}%"
+
+# Check if usage is greater than or equal to threshold
+if [ "$USAGE" -ge "$THRESHOLD" ]; then
+    echo "Disk usage exceeded ${THRESHOLD}%"
+
+    if [ -d "$DELETE_DIR" ]; then
+        echo "Deleting $DELETE_DIR ..."
+
+        rm -rf "$DELETE_DIR"
+
+        if [ $? -eq 0 ]; then
+            echo "$DELETE_DIR deleted successfully."
+        else
+            echo "Failed to delete $DELETE_DIR"
+        fi
+    else
+        echo "$DELETE_DIR does not exist."
+    fi
+else
+    echo "Disk usage below threshold. No action required."
+fi

@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# Threshold percentage
+THRESHOLD=79
+
+# Paths
+JENKINS_PATH="/var/lib/jenkins"
+TMP_PATH="/var/lib/jenkins/TMP"
+
+# Actions
+DELETE_DIR="/var/lib/jenkins/.m2"
+SOURCE_DIR="/var/lib/jenkins/TMP"
+DEST_DIR="/var/lib/data/TMP"
+
+# Get usage percentages
+JENKINS_USAGE=$(df "$JENKINS_PATH" | awk 'NR==2 {gsub("%",""); print $5}')
+TMP_USAGE=$(df "$TMP_PATH" | awk 'NR==2 {gsub("%",""); print $5}')
+
+echo "Disk usage on $JENKINS_PATH : ${JENKINS_USAGE}%"
+echo "Disk usage on $TMP_PATH : ${TMP_USAGE}%"
+
+# ---------------------------------------------------
+# Condition 1: If /var/lib/jenkins reaches threshold
+# Delete .m2 directory
+# ---------------------------------------------------
+if [ "$JENKINS_USAGE" -ge "$THRESHOLD" ]; then
+
+    echo "Threshold reached for $JENKINS_PATH"
+
+    if [ -d "$DELETE_DIR" ]; then
+        echo "Deleting $DELETE_DIR ..."
+        rm -rf "$DELETE_DIR"
+
+        if [ $? -eq 0 ]; then
+            echo "$DELETE_DIR deleted successfully."
+        else
+            echo "Failed to delete $DELETE_DIR"
+        fi
+    else
+        echo "$DELETE_DIR does not exist."
+    fi
+
+else
+    echo "$JENKINS_PATH usage below threshold."
+fi
+
+# ---------------------------------------------------
+# Condition 2: If /var/lib/jenkins/TMP reaches threshold
+# Move TMP data
+# ---------------------------------------------------
+if [ "$TMP_USAGE" -ge "$THRESHOLD" ]; then
+
+    echo "Threshold reached for $TMP_PATH"
+
+    if [ -d "$SOURCE_DIR" ]; then
+
+        echo "Moving data from $SOURCE_DIR to $DEST_DIR ..."
+
+        mkdir -p "$DEST_DIR"
+
+        mv "$SOURCE_DIR"/* "$DEST_DIR"/ 2>/dev/null
+
+        if [ $? -eq 0 ]; then
+            echo "TMP data moved successfully."
+
+            # Recreate TMP directory
+            mkdir -p "$SOURCE_DIR"
+        else
+            echo "Failed to move TMP data."
+        fi
+    else
+        echo "$SOURCE_DIR does not exist."
+    fi
+
+else
+    echo "$TMP_PATH usage below threshold."
+fi

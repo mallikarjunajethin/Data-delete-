@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# =========================================================
+# Script Name : manage_nexus_rpdata.sh
+# Description :
+#   1. Check /nexusrpdata2 disk usage
+#   2. If usage >= 79%
+#        - Delete hourly and daily zip files
+#          older than 3 days from /nexusrpdata1
+#   3. Move files older than 2 days from
+#      /nexusrpdata2 to /nexusrpdata1
+# =========================================================
+
+# Directories
+SRC_DIR="/nexusrpdata2"
+DEST_DIR="/nexusrpdata1"
+
+# Threshold
+THRESHOLD=79
+
+# Log file
+LOG_FILE="/var/log/manage_nexus_rpdata.log"
+
+echo "=================================================" >> $LOG_FILE
+echo "Script started at $(date)" >> $LOG_FILE
+
+# Get filesystem usage percentage
+USAGE=$(df -h "$SRC_DIR" | awk 'NR==2 {print $5}' | sed 's/%//')
+
+echo "Current usage of $SRC_DIR : ${USAGE}%" >> $LOG_FILE
+
+# Check usage threshold
+if [ "$USAGE" -ge "$THRESHOLD" ]; then
+
+    echo "Usage exceeded ${THRESHOLD}%." >> $LOG_FILE
+    echo "Deleting old zip files from $DEST_DIR ..." >> $LOG_FILE
+
+    # Delete nexusrpdata_hourly_*.zip older than 3 days
+    find "$DEST_DIR" -type f -name "nexusrpdata_hourly_*.zip" -mtime +3 -exec rm -f {} \; >> $LOG_FILE 2>&1
+
+    # Delete nexusrpdata_daily_*.zip older than 3 days
+    find "$DEST_DIR" -type f -name "nexusrpdata_daily_*.zip" -mtime +3 -exec rm -f {} \; >> $LOG_FILE 2>&1
+
+    echo "Old files deletion completed." >> $LOG_FILE
+
+else
+    echo "Usage below threshold. No deletion required." >> $LOG_FILE
+fi
+
+echo "Moving files older than 2 days from $SRC_DIR to $DEST_DIR ..." >> $LOG_FILE
+
+# Move hourly files older than 2 days
+find "$SRC_DIR" -type f -name "nexusrpdata_hourly_*.zip" -mtime +2 -exec mv {} "$DEST_DIR"/ \; >> $LOG_FILE 2>&1
+
+# Move daily files older than 2 days
+find "$SRC_DIR" -type f -name "nexusrpdata_daily_*.zip" -mtime +2 -exec mv {} "$DEST_DIR"/ \; >> $LOG_FILE 2>&1
+
+echo "File movement completed." >> $LOG_FILE
+echo "Script completed at $(date)" >> $LOG_FILE
+
+exit 0

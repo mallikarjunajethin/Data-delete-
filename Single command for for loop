@@ -1,1 +1,2 @@
 for i in $(cat servers.list); do echo -n "$i : "; ssh "$i" "df -h /nexusrpdata2 | awk 'NR==2 {print \$5}'"; done
+for i in $(cat servers.list); do echo "===== $i ====="; sshpass -p 'YourPassword' ssh -o StrictHostKeyChecking=no username@$i "echo -n 'Date : '; date; echo -n 'Uptime : '; uptime -p; echo -n 'Disk Usage : '; df -h /nexusrpdata2 | awk 'NR==2 {print \$5}'; echo -n 'Nginx Status : '; systemctl is-active nginx"; echo; done
